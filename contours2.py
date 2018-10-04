@@ -9,37 +9,7 @@ BLUE = 3
 colors = [RED, YELLOW, GREEN, BLUE]
 color_names = ["RED", "YELLOW", "GREEN", "BLUE"]
 
-img = cv2.imread('two_multi_color_blocks.jpg')
-img_color = imutils.resize(img, width=600)
-img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
-
-img_hsv = cv2.cvtColor(img_color, cv2.COLOR_BGR2HSV)
-
-lower_black = np.array([0, 0, 0])
-upper_black = np.array([0, 0, 70])
-
-
-ret, thresh = cv2.threshold(img_gray, 10, 255, cv2.THRESH_BINARY_INV)
-
-
-image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-
-def nothing(x):
-	pass
-
-cv2.namedWindow("controls")
-cv2.createTrackbar('index', 'controls', 0, len(contours)-1, nothing)
-cv2.createTrackbar('h', 'controls', 0, 180, nothing)
-cv2.createTrackbar('s', 'controls', 0, 255, nothing)
-cv2.createTrackbar('v', 'controls', 0, 255, nothing)
-
-
-
 """COLOR RANGES (HSV):"""
-
-
-
 
 lower_blue = np.array([100, 50, 0])
 upper_blue = np.array([140, 255, 255])
@@ -64,6 +34,32 @@ color_ranges = [
 
 
 
+img = cv2.imread('paper_blocks.jpg')	#open image
+img_color = imutils.resize(img, width=600)	#resize image
+img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY) #convert image to grayscale
+
+#locate any black in the image - make anything below the threshold white, and anything above black (black should turn white)
+thresh_val = 60
+ret, thresh = cv2.threshold(img_gray, thresh_val, 255, cv2.THRESH_BINARY_INV) 
+
+cv2.imshow('test', np.hstack([img_gray, thresh]))
+cv2.waitKey()
+
+#Find the black outline around each block
+image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+#TODO: Destroy any contours that are below a certain threshold (to get rid of false outlines)
+
+
+#blank function for trackbar
+def nothing(x):
+	pass
+
+cv2.namedWindow("controls")
+cv2.createTrackbar('index', 'controls', 0, len(contours)-1, nothing)
+
+
+
+
 
 while True:
 
@@ -72,10 +68,7 @@ while True:
 
 
 	x, y, width, height = cv2.boundingRect(contours[contourIndex])
-	
-	print img_color.shape
-	
-	print([x, y, width, height])
+		
 	
 	block_region = img_color[y:(y+height), x:(x+width)]; #crop the image to the rectangle of that contour
 	
@@ -94,7 +87,7 @@ while True:
 	
 	
 	for color in colors: #for each color
-		mask = cv2.inRange(block_region_hsv, color_ranges[color][0], color_ranges[color][1])
+		mask = cv2.inRange(block_region_hsv, color_ranges[color][0], color_ranges[color][1]) #mask out everything other than that color
 		color_region = cv2.bitwise_and(block_region, block_region, mask=mask)
 		color_region = cv2.cvtColor(color_region, cv2.COLOR_BGR2GRAY)
 		ret, color_region = cv2.threshold(color_region, 10, 255, cv2.THRESH_BINARY)
