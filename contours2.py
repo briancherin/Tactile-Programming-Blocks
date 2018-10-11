@@ -8,6 +8,7 @@ GREEN = 3
 AQUA = 4 #light blue
 BLUE = 5 #dark blue
 PURPLE = 6
+BLACK = 7
 
 
 """
@@ -23,27 +24,31 @@ color_names = ["RED", "RED", "YELLOW", "GREEN", "AQUA", "BLUE", "PURPLE"]
 
 """COLOR RANGES (HSV):"""
 
-#lower red 1 include too much black
-lower_red1 = np.array([0,0,0])
+#TODO: lower red 1 include too much black
+value = 100
+lower_red1 = np.array([0,0,value])
 upper_red1 = np.array([15,255,255])
 
-lower_red2 = np.array([166,0,0])
+lower_red2 = np.array([166,0,value])
 upper_red2 = np.array([180,255,255])
 
-lower_yellow = np.array([16,0,0])
+lower_yellow = np.array([16,0,value])
 upper_yellow = np.array([45,255,255])
 
-lower_green = np.array([46,0,0])
+lower_green = np.array([46,0,value])
 upper_green = np.array([75,255,255])
 
-lower_aqua = np.array([76,0,0])
+lower_aqua = np.array([76,0,value])
 upper_aqua = np.array([105,255,255])
 
-lower_blue = np.array([106,0,0])
+lower_blue = np.array([106,0,value])
 upper_blue = np.array([135,255,255])
 
-lower_purple = np.array([136,0,0])
+lower_purple = np.array([136,0,value])
 upper_purple = np.array([165,255,255])
+
+#lower_black = np.array([0, 0, 0])
+#upper_black = np.array([180, 255, value])
 
 
 
@@ -54,7 +59,8 @@ color_ranges = [
 	(lower_green, upper_green),	#INDEX 3 = GREEN
 	(lower_aqua, upper_aqua),	#INDEX 4 = AQUA
 	(lower_blue, upper_blue),	#INDEX 5 = BLUE
-	(lower_purple, upper_purple)#INDEX 5 = PURPLE
+	(lower_purple, upper_purple),#INDEX 6 = PURPLE
+	#(lower_black, upper_black)	#INDEX 7 = BLACK
 ]
 
 def removeExtraContours(contours):
@@ -71,6 +77,9 @@ def removeExtraContours(contours):
 
 	return contours[0:num_valid_contours]
 
+def printColorList(colorList):
+	for color in colorList:
+		print (color_names[color])
 
 
 img = cv2.imread('paper_blocks2.jpg')	#open image
@@ -154,38 +163,22 @@ while True:
 		else:
 			color_contour_max_area = max(color_contours, key = cv2.contourArea)
 			color_areas[color] = cv2.contourArea(color_contour_max_area)
-		
-	print("Color areas:")
+	
+
+	colors_in_region = []
+	
+	print("\nColor areas:")
+	total_region_area = width*height
 	for color in colors:
-		print (color_names[color] + ": " + str(color_areas[color]))
+		color_percentage = round(color_areas[color] / total_region_area * 100, 2)
+		#print (color_names[color] + ": " + str(color_percentage) + "%")
+		
+		if color_percentage > 15:
+			colors_in_region.append(color)
 	
-	
-	"""
-	
-	
-	blue_mask = cv2.inRange(block_region_hsv, lower_blue, upper_blue)
-	blue_region = cv2.bitwise_and(block_region, block_region, mask=blue_mask)
-	
-	
-	red_mask = cv2.inRange(block_region_hsv, lower_red, upper_red)
-	red_region = cv2.bitwise_and(block_region, block_region, mask=red_mask)
-	red_region = cv2.cvtColor(red_region, cv2.COLOR_BGR2GRAY)
-	rr, red_region = cv2.threshold(red_region, 10, 255, cv2.THRESH_BINARY)
-	
-	ir, red_contours, hr = cv2.findContours(red_region, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-	if len(red_contours)==0:
-		red_area = 0
-	else:
-		max_red_c = max(red_contours, key = cv2.contourArea)
-		red_area = cv2.contourArea(max_red_c)
-	
-	print("red area = " + str(red_area))
-	"""
-	
-	
-	
-	
-	
+
+	print("Colors in region:")
+	printColorList(colors_in_region)
 	
 	
 	cv2.imshow("result", np.hstack([block_region]))
