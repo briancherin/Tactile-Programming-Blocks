@@ -2,52 +2,106 @@ import cv2, numpy as np
 import imutils
 
 RED = 0
-YELLOW = 1
-GREEN = 2
-BLUE = 3
+RED1 = 1
+YELLOW = 2
+GREEN = 3
+AQUA = 4 #light blue
+BLUE = 5 #dark blue
+PURPLE = 6
 
-colors = [RED, YELLOW, GREEN, BLUE]
-color_names = ["RED", "YELLOW", "GREEN", "BLUE"]
+
+"""
+
+[
+(RED, GREEN),	#Example block
+(BLUE, YELLOW)  #Example block 2
+]
+
+"""
+colors = [RED, RED1, YELLOW, GREEN, AQUA, BLUE, PURPLE]
+color_names = ["RED", "RED", "YELLOW", "GREEN", "AQUA", "BLUE", "PURPLE"]
 
 """COLOR RANGES (HSV):"""
 
-lower_blue = np.array([100, 50, 0])
-upper_blue = np.array([140, 255, 255])
+#lower red 1 include too much black
+lower_red1 = np.array([0,0,0])
+upper_red1 = np.array([15,255,255])
 
-#TODO: range for red could also be h = 0 to h = 10
-lower_red = np.array([160, 0, 0])
-upper_red = np.array([180, 255, 255])
+lower_red2 = np.array([166,0,0])
+upper_red2 = np.array([180,255,255])
 
-lower_yellow = np.array([10, 0, 0])
-upper_yellow = np.array([40, 255, 255])
+lower_yellow = np.array([16,0,0])
+upper_yellow = np.array([45,255,255])
 
-lower_green = np.array([40, 0, 0])
-upper_green = np.array([80, 255, 255])
+lower_green = np.array([46,0,0])
+upper_green = np.array([75,255,255])
+
+lower_aqua = np.array([76,0,0])
+upper_aqua = np.array([105,255,255])
+
+lower_blue = np.array([106,0,0])
+upper_blue = np.array([135,255,255])
+
+lower_purple = np.array([136,0,0])
+upper_purple = np.array([165,255,255])
+
 
 
 color_ranges = [
-	(lower_red, upper_red),	#INDEX 0 = RED
-	(lower_yellow, upper_yellow), #INDEX 1 = YELLOW
-	(lower_green, upper_green),	#INDEX 2 = GREEN
-	(lower_blue, upper_blue)	#INDEX 3 = BLUE
+	(lower_red1, upper_red1),	#INDEX 0 = RED
+	(lower_red2, upper_red2), 	#INDEX 1 = RED (two different ranges for red)
+	(lower_yellow, upper_yellow), #INDEX 2 = YELLOW
+	(lower_green, upper_green),	#INDEX 3 = GREEN
+	(lower_aqua, upper_aqua),	#INDEX 4 = AQUA
+	(lower_blue, upper_blue),	#INDEX 5 = BLUE
+	(lower_purple, upper_purple)#INDEX 5 = PURPLE
 ]
 
+def removeExtraContours(contours):
+	contours = sorted(contours, key = cv2.contourArea, reverse=True) #sort contours by greatest to least area
+	max_area = cv2.contourArea(max(contours, key = cv2.contourArea))
+
+	num_valid_contours = 0
+	for contour in contours:	#for each contour (each suspected block)
+	#if the are contained by the contour is of reasonable size (not an erroneous detection)
+		area = cv2.contourArea(contour)
+		
+		if (area > max_area * 0.1):	#accept anything larger than 10% of the max block size (TODO: THIS MIGHT CAUSE ISSUES)
+			num_valid_contours += 1
+
+	return contours[0:num_valid_contours]
 
 
-img = cv2.imread('paper_blocks.jpg')	#open image
+
+img = cv2.imread('paper_blocks2.jpg')	#open image
 img_color = imutils.resize(img, width=600)	#resize image
 img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY) #convert image to grayscale
 
 #locate any black in the image - make anything below the threshold white, and anything above black (black should turn white)
-thresh_val = 60
-ret, thresh = cv2.threshold(img_gray, thresh_val, 255, cv2.THRESH_BINARY_INV) 
+thresh_val = 90
+#ret, thresh = cv2.threshold(img_gray, thresh_val, 255, cv2.THRESH_BINARY_INV) 
+blocksize = 101
+constant = 40
+thresh = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blocksize, constant) 
 
-cv2.imshow('test', np.hstack([img_gray, thresh]))
-cv2.waitKey()
 
 #Find the black outline around each block
 image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#TODO: Destroy any contours that are below a certain threshold (to get rid of false outlines)
+
+#Destroy any contours that are below a certain threshold (to get rid of false outlines)
+contours = removeExtraContours(contours)
+#check if biggest contour is just the entire image
+x,y,width,height=cv2.boundingRect(contours[0])
+print (width, img_color.shape[1])
+if(width == img_color.shape[1]):
+	contours = contours[1:]
+
+#display contours overlayed on image (for testing)
+drawn = cv2.drawContours(img_color.copy(), contours, -1, (0, 255, 0), 3)
+
+
+cv2.imshow('test', np.hstack([drawn]))
+cv2.waitKey()
 
 
 #blank function for trackbar
@@ -64,7 +118,7 @@ cv2.createTrackbar('index', 'controls', 0, len(contours)-1, nothing)
 while True:
 
 	contourIndex = cv2.getTrackbarPos('index', 'controls')
-	drawn = cv2.drawContours(img_color.copy(), contours, contourIndex, (0, 255, 0), 3)
+	
 
 
 	x, y, width, height = cv2.boundingRect(contours[contourIndex])
@@ -92,8 +146,9 @@ while True:
 		color_region = cv2.cvtColor(color_region, cv2.COLOR_BGR2GRAY)
 		ret, color_region = cv2.threshold(color_region, 10, 255, cv2.THRESH_BINARY)
 		
-		i, color_contours, h = cv2.findContours(color_region, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+		i, color_contours, h = cv2.findContours(color_region, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) #find the contour around that color
 		
+		#determine the area of that color
 		if len(color_contours) == 0:
 			color_areas[color] = 0
 		else:
