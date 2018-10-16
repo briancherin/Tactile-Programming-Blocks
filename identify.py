@@ -139,14 +139,14 @@ def getBlockListFromImage(filename):
 			
 			color_areas[color] = color_area
 		
-		colors_in_region = []
+		colors_in_region = set() #unordered list of colors in this block
 
 		total_region_area = width*height
 		for color in colors:
 			color_percentage = round(color_areas[color] / total_region_area * 100, 2)
 			
 			if color_percentage > 15:
-				colors_in_region.append(color)
+				colors_in_region.add(color)
 
 		block_list.append(colors_in_region) #TODO: Ordering might not be right here. (Include coordinate information?)
 	return block_list
