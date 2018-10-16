@@ -2,13 +2,12 @@ import cv2, numpy as np
 import imutils
 
 RED = 0
-RED1 = 1
-YELLOW = 2
-GREEN = 3
-AQUA = 4 #light blue
-BLUE = 5 #dark blue
-PURPLE = 6
-BLACK = 7
+YELLOW = 1
+GREEN = 2
+AQUA = 3 #light blue
+BLUE = 4 #dark blue
+PURPLE = 5
+BLACK = 6
 
 
 """
@@ -19,12 +18,11 @@ BLACK = 7
 ]
 
 """
-colors = [RED, RED1, YELLOW, GREEN, AQUA, BLUE, PURPLE]
-color_names = ["RED", "RED", "YELLOW", "GREEN", "AQUA", "BLUE", "PURPLE"]
+colors = [RED, YELLOW, GREEN, AQUA, BLUE, PURPLE]
+color_names = ["RED", "YELLOW", "GREEN", "AQUA", "BLUE", "PURPLE"]
 
 """COLOR RANGES (HSV):"""
 
-#TODO: lower red 1 include too much black
 value = 100
 lower_red1 = np.array([0,0,value])
 upper_red1 = np.array([15,255,255])
@@ -50,7 +48,6 @@ upper_purple = np.array([165,255,255])
 
 color_ranges = [
 	(lower_red1, upper_red1),	#INDEX 0 = RED
-	(lower_red2, upper_red2), 	#INDEX 1 = RED (two different ranges for red)
 	(lower_yellow, upper_yellow), #INDEX 2 = YELLOW
 	(lower_green, upper_green),	#INDEX 3 = GREEN
 	(lower_aqua, upper_aqua),	#INDEX 4 = AQUA
@@ -102,6 +99,24 @@ def getContoursFromImage(filename):
 	
 	return (img_color, contours)
 
+#Determine the area of a color that a given region contains
+def getColorArea(region_bgr, region_hsv, lower_hsv, upper_hsv):
+	mask = cv2.inRange(region_hsv, lower_hsv, upper_hsv)	#Find mask excluding everything except the given color
+	color_region = cv2.bitwise_and(region_bgr, region_bgr, mask = mask) #Blacken everything except this color
+	
+	#Convert to grayscale and apply threshold to binarize the image (totally white for target color area, totally black elsewhere)
+	color_region = cv2.cvtColor(color_region, cv2.COLOR_BGR2GRAY) 
+	ret, color_region = cv2.threshold(color_region, 10, 255, cv2.THRESH_BINARY) #TODO: better threshold value? (currently arbitrary)
+	
+	#Find the contour surrounding the color region
+	i, color_contours, h = cv2.findContours(color_region, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+	if len(color_contours) == 0: #If no area of this color was found
+		return 0
+	else:
+		#Find the area of the largest contour (TODO: Find the sum of all contour areas?)
+		color_contour_max_area = max(color_contours, key = cv2.contourArea)
+		return cv2.contourArea(color_contour_max_area)
+	
 def getBlockListFromImage(filename):
 	img_color, contours = getContoursFromImage(filename)
 	
@@ -115,23 +130,17 @@ def getBlockListFromImage(filename):
 		block_region_hsv = cv2.cvtColor(block_region, cv2.COLOR_BGR2HSV)
 		
 		for color in colors: #for each color
-			mask = cv2.inRange(block_region_hsv, color_ranges[color][0], color_ranges[color][1]) #mask out everything other than that color
-			color_region = cv2.bitwise_and(block_region, block_region, mask=mask)
-			color_region = cv2.cvtColor(color_region, cv2.COLOR_BGR2GRAY)
-			ret, color_region = cv2.threshold(color_region, 10, 255, cv2.THRESH_BINARY)
+			#Determine the area of that color contained by the region
+			color_area = getColorArea(block_region, block_region_hsv, color_ranges[color][0], color_ranges[color][1])
 			
-			i, color_contours, h = cv2.findContours(color_region, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) #find the contour around that color
+			if color == RED: 
+				red2_area = getColorArea(block_region, block_region_hsv, lower_red2, upper_red2)
+				color_area += red2_area
 			
-			#determine the area of that color
-			if len(color_contours) == 0:
-				color_areas[color] = 0
-			else:
-				color_contour_max_area = max(color_contours, key = cv2.contourArea)
-				color_areas[color] = cv2.contourArea(color_contour_max_area)
+			color_areas[color] = color_area
 		
-
 		colors_in_region = []
-		
+
 		total_region_area = width*height
 		for color in colors:
 			color_percentage = round(color_areas[color] / total_region_area * 100, 2)
