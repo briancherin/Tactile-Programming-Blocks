@@ -122,15 +122,15 @@ def removeNestedContours(contours):
 	return contours
 
 	
-def removeExtraContours(contours):
+def removeExtraContours(contours, img):
 	contours = sorted(contours, key = cv2.contourArea, reverse=True) #sort contours by greatest to least area
 	max_contour_area = cv2.contourArea(contours[0])
 	contours = filterSmallContours(contours, max_contour_area * 0.1) #accept anything larger than 10% of the max block size (TODO: THIS MIGHT CAUSE ISSUES)(?)
 	
 	#check if biggest contour is just the border of the image
 	x,y,width,height = cv2.boundingRect(contours[0])
-	if(width == img_color.shape[1]):
-		contours = contours[1:]
+	if(width == img.shape[1]): #If the contour width equals the image width
+		contours = contours[1:]	#Delete that largest contour
 	
 	#Remove extra contours caused by the border of each block
 	contours = removeNestedContours(contours)
@@ -158,7 +158,7 @@ thresh = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv
 image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 #Destroy any contours that are below a certain threshold (to get rid of false outlines)
-contours = removeExtraContours(contours)
+contours = removeExtraContours(contours, img_color)
 contours = sorted(contours, key = cv2.contourArea, reverse=True) #sort contours by greatest to least area
 
 
