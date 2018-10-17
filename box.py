@@ -69,6 +69,22 @@ color_ranges = [
 	#(lower_black, upper_black)	#INDEX 7 = BLACK
 ]
 
+def isNestedContour(outerContour, potentialInnerContour):
+	outer_x, outer_y, outer_width, outer_height = cv2.boundingRect(outerContour)
+	inner_x, inner_y, inner_width, inner_height = cv2.boundingRect(potentialInnerContour)
+	
+	print("\nouter:")
+	print(cv2.boundingRect(outerContour))
+	print("inner:")
+	print(cv2.boundingRect(potentialInnerContour))
+	print("outer_x + outer_width: " + str(outer_x+outer_width))
+	print("inner_x + inner_width: " + str(inner_x+inner_width))
+	print("outer_y + outer_height: " + str(outer_y+outer_height))
+	print("inner_y + inner_height: " + str(inner_y+inner_height))
+
+	return outer_x < inner_x and outer_y < inner_y and (outer_x + outer_width > inner_x + inner_width) and (outer_y + outer_height > inner_y + inner_height)
+	
+
 def filterSmallContours(sorted_contours, thresholdArea):
 	max_area = cv2.contourArea(max(sorted_contours, key = cv2.contourArea))
 	num_valid_contours = 0
@@ -82,7 +98,27 @@ def filterSmallContours(sorted_contours, thresholdArea):
 
 	
 def removeNestedContours(contours):
-	
+#Precondition: contours is sorted from greatest contour area to least
+
+	#For each contour
+		#for each other contour
+			#if the other contour is contained by the original contour
+				#delete that contour
+				#decrement counter
+				#0 1 2 3
+	outerIndex = 0
+	while outerIndex < len(contours):
+		outerContour = contours[outerIndex]
+		potentialInnerIndex = outerIndex + 1
+		while potentialInnerIndex < len(contours):
+			if isNestedContour(outerContour, contours[potentialInnerIndex]):
+				print("Found a nested contour!")
+				contours = contours[0:potentialInnerIndex] + contours[potentialInnerIndex + 1 :]
+				potentialInnerIndex -= 1 #correct for the shift of deletion to look at the next item
+			potentialInnerIndex += 1
+		outerIndex += 1
+		
+
 	return contours
 
 	
@@ -106,7 +142,7 @@ def printColorList(colorList):
 		print (color_names[color])
 
 
-img = cv2.imread('paper_blocks2.jpg')	#open image
+img = cv2.imread('paper_blocks.jpg')	#open image
 img_color = imutils.resize(img, width=600)	#resize image
 img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY) #convert image to grayscale
 
