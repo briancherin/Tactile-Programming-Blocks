@@ -55,19 +55,73 @@ color_ranges = [
 	(lower_purple, upper_purple),#INDEX 6 = PURPLE
 ]
 
-def removeExtraContours(contours):
-	contours = sorted(contours, key = cv2.contourArea, reverse=True) #sort contours by greatest to least area
-	max_area = cv2.contourArea(max(contours, key = cv2.contourArea))
+def isNestedContour(outerContour, potentialInnerContour):
+	outer_x, outer_y, outer_width, outer_height = cv2.boundingRect(outerContour)
+	inner_x, inner_y, inner_width, inner_height = cv2.boundingRect(potentialInnerContour)
+	
+	print("\nouter:")
+	print(cv2.boundingRect(outerContour))
+	print("inner:")
+	print(cv2.boundingRect(potentialInnerContour))
+	print("outer_x + outer_width: " + str(outer_x+outer_width))
+	print("inner_x + inner_width: " + str(inner_x+inner_width))
+	print("outer_y + outer_height: " + str(outer_y+outer_height))
+	print("inner_y + inner_height: " + str(inner_y+inner_height))
 
+	return outer_x < inner_x and outer_y < inner_y and (outer_x + outer_width > inner_x + inner_width) and (outer_y + outer_height > inner_y + inner_height)
+	
+
+def filterSmallContours(sorted_contours, thresholdArea):
+	max_area = cv2.contourArea(max(sorted_contours, key = cv2.contourArea))
 	num_valid_contours = 0
-	for contour in contours:	#for each contour (each suspected block)
-	#if the are contained by the contour is of reasonable size (not an erroneous detection)
+	
+	for contour in sorted_contours:	#for each contour (each suspected block)
 		area = cv2.contourArea(contour)
-		
-		if (area > max_area * 0.1):	#accept anything larger than 10% of the max block size (TODO: THIS MIGHT CAUSE ISSUES)
+		#if the are contained by the contour is of reasonable size (not an erroneous detection)
+		if area > thresholdArea:
 			num_valid_contours += 1
+	return sorted_contours[0:num_valid_contours]
 
-	return contours[0:num_valid_contours]
+	
+def removeNestedContours(contours):
+#Precondition: contours is sorted from greatest contour area to least
+
+	#For each contour
+		#for each other contour
+			#if the other contour is contained by the original contour
+				#delete that contour
+				#decrement counter
+				#0 1 2 3
+	outerIndex = 0
+	while outerIndex < len(contours):
+		outerContour = contours[outerIndex]
+		potentialInnerIndex = outerIndex + 1
+		while potentialInnerIndex < len(contours):
+			if isNestedContour(outerContour, contours[potentialInnerIndex]):
+				print("Found a nested contour!")
+				contours = contours[0:potentialInnerIndex] + contours[potentialInnerIndex + 1 :]
+				potentialInnerIndex -= 1 #correct for the shift of deletion to look at the next item
+			potentialInnerIndex += 1
+		outerIndex += 1
+		
+
+	return contours
+
+	
+def removeExtraContours(contours, img):
+	contours = sorted(contours, key = cv2.contourArea, reverse=True) #sort contours by greatest to least area
+	max_contour_area = cv2.contourArea(contours[0])
+	contours = filterSmallContours(contours, max_contour_area * 0.1) #accept anything larger than 10% of the max block size (TODO: THIS MIGHT CAUSE ISSUES)(?)
+	
+	#check if biggest contour is just the border of the image
+	x,y,width,height = cv2.boundingRect(contours[0])
+	if(width == img.shape[1]): #If the contour width equals the image width
+		contours = contours[1:]	#Delete that largest contour
+	
+	#Remove extra contours caused by the border of each block
+	contours = removeNestedContours(contours)
+	
+	return contours
 
 def printColorList(colorList):
 	for color in colorList:
@@ -90,7 +144,7 @@ def getContoursFromImage(filename):
 	image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 	#Destroy any contours that are below a certain threshold (to get rid of false outlines)
-	contours = removeExtraContours(contours)
+	contours = removeExtraContours(contours, img_color)
 
 	#check if biggest contour is just the entire image (if so, delete that extra contour)
 	x,y,width,height=cv2.boundingRect(contours[0])
@@ -151,6 +205,7 @@ def getBlockListFromImage(filename):
 		block_list.append(colors_in_region) #TODO: Ordering might not be right here. (Include coordinate information?)
 	return block_list
 
+#TODO: Ensure correct order of blocks in image (left to right, up to down)
 blockList = getBlockListFromImage("paper_blocks2.jpg")
 for block in blockList:
 	printColorList(block)
