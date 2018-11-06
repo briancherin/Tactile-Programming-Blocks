@@ -90,7 +90,6 @@ def removeNestedContours(contours):
 		potentialInnerIndex = outerIndex + 1
 		while potentialInnerIndex < len(contours):
 			if isNestedContour(outerContour, contours[potentialInnerIndex]):
-				print("Found a nested contour!")
 				contours = contours[0:potentialInnerIndex] + contours[potentialInnerIndex + 1 :]
 				potentialInnerIndex -= 1 #correct for the shift of deletion to look at the next item
 			potentialInnerIndex += 1
@@ -119,6 +118,10 @@ def printColorList(colorList):
 	for color in colorList:
 		print (color_names[color])
 
+def printColorSet(colorSet):
+	for color in colorSet:
+		print color_names[color]
+
 def getContoursFromImage(img):
 
 	img_color = imutils.resize(img, width=600)	#resize image
@@ -142,10 +145,11 @@ def getContoursFromImage(img):
 	#cv2.waitKey(0)
 
 	#check if biggest contour is just the entire image (if so, delete that extra contour)
-	x,y,width,height=cv2.boundingRect(contours[0])
-	if(width == img_color.shape[1]):
-		contours = contours[1:]
-	
+	if len(contours) > 0:	#Unless there are no contours,
+		x,y,width,height=cv2.boundingRect(contours[0])
+		if(width == img_color.shape[1]):
+			contours = contours[1:]
+		
 	return (img_color, contours)
 
 #Determine the area of a color that a given region contains
@@ -174,13 +178,15 @@ def getBlockListFromImage(img):
 	img_color, contours = getContoursFromImage(img)
 	
 	block_list = [] #list containing lists of colors in each block
-	for block_contour in contours:
+	for block_contour in contours: #for each block
 		x, y, width, height = cv2.boundingRect(block_contour) #Find the closest rectangle over this block
 		block_region = img_color[y:(y+height), x:(x+width)]; #crop the image to the rectangle of the block
 		
-		color_areas = [0] * len(colors) #initialize a list of 0s representing the area of each color
+		color_areas = [0] * len(colors) #initialize a list of 0s representing the area of each possible color
 		
-		block_region_hsv = cv2.cvtColor(block_region, cv2.COLOR_BGR2HSV)
+		block_region_hsv = cv2.cvtColor(block_region, cv2.COLOR_BGR2HSV) #convert to hsv for better color differentiation
+				
+		print("\nColor areas:")
 				
 		for color in colors: #for each color
 			#Determine the area of that color contained by the region
@@ -190,7 +196,7 @@ def getBlockListFromImage(img):
 				red2_area = getColorArea(block_region, block_region_hsv, lower_red2, upper_red2)
 				color_area += red2_area
 						
-		
+			#print(color_names[color] + ": " + str(color_area))
 			
 			color_areas[color] = color_area
 
@@ -199,8 +205,9 @@ def getBlockListFromImage(img):
 		total_region_area = width*height
 		for color in colors:
 			color_percentage = round(color_areas[color] / total_region_area * 100, 2)
+			#print(color_names[color] + ": " +  str(color_percentage) + "%")
 			
-			if color_percentage > 15:
+			if color_percentage > 10:
 				colors_in_region.add(color)
 
 		block_list.append(colors_in_region)

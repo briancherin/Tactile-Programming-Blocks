@@ -7,7 +7,10 @@ while True:
 	ret, frame = cap.read()
 	
 	blockSet = block_helper.getBlockListFromImage(frame)
-	print(blockSet)
+	print blockSet
+	for x in range (0, len(blockSet)):
+		print("Block " + str(x+1) + ":")
+		block_helper.printColorSet(blockSet[x])
 	
 	
 	
