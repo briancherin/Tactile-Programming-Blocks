@@ -98,19 +98,54 @@ def removeNestedContours(contours):
 
 	return contours
 
+def emptyFunction(x):
+	return x
+
+
 	
 def removeExtraContours(contours, img):
+
+	
+
 	contours = sorted(contours, key = cv2.contourArea, reverse=True) #sort contours by greatest to least area
+	
+	contours = contours[1:] #Get rid of the border contour (TODO: There might not be a border contour (around entire image) every time, so this might cause issues)
+	
 	max_contour_area = cv2.contourArea(contours[0])
 	contours = filterSmallContours(contours, max_contour_area * 0.1) #accept anything larger than 10% of the max block size (TODO: THIS MIGHT CAUSE ISSUES)(?)
 	
+	
+	
+	#cv2.imshow("contours", cv2.drawContours(img, contours, 0, (0,  255, 0), 5))
+	#cv2.waitKey(0)
+	
 	#check if biggest contour is just the border of the image
-	x,y,width,height = cv2.boundingRect(contours[0])
-	if(width == img.shape[1]): #If the contour width equals the image width
-		contours = contours[1:]	#Delete that largest contour
+	#x,y,width,height = cv2.boundingRect(contours[0])
+	#if(width == img.shape[1]): #If the contour width equals the image width
+	#	contours = contours[1:]	#Delete that largest contour
+	
+	
+
+	#TODO: BIG ISSUE: FIGURE OUT HOW TO GET RID OF TOO BID AND IRRELEVANT CONTOURS
+	#img_area = img.shape[0] * img.shape[1]
+	#block_contours = []
+	#for contour in contours:
+	#	if cv2.contourArea(contour) < img_area * 0.3: #Remove any contour larger than half the image area
+	#		block_contours.append(contour)
+	#contours = block_contours
 	
 	#Remove extra contours caused by the border of each block
 	contours = removeNestedContours(contours)
+	
+	#cv2.namedWindow("contours")
+	#cv2.createTrackbar("ind", "contours", 0, len(contours)-1, emptyFunction)
+	
+	#while True:
+	#	cv2.imshow("contour", cv2.drawContours(img.copy(), contours, cv2.getTrackbarPos("ind", "contours"), (0,  255, 0), 5))
+	#	if cv2.waitKey(1) & 0xFF == ord('q'):
+	#		break
+	#cv2.destroyAllWindows()
+	
 	
 	return contours
 
@@ -119,12 +154,13 @@ def printColorList(colorList):
 		print (color_names[color])
 
 def printColorSet(colorSet):
+	res = ""
 	for color in colorSet:
-		print color_names[color]
+		res += color_names[color] + " "
+	print res
 
-def getContoursFromImage(img):
+def getContoursFromImage(img_color):
 
-	img_color = imutils.resize(img, width=600)	#resize image
 	img_gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY) #convert image to grayscale
 
 	#locate any black in the image - make anything below the threshold white, and anything above black (black should turn white)
@@ -142,13 +178,13 @@ def getContoursFromImage(img):
 	contours = removeExtraContours(contours, img_color)
 	
 	#cv2.imshow("contours", cv2.drawContours(cv2.cvtColor(thresh.copy(), cv2.COLOR_GRAY2BGR), contours, -1, (0,  255, 0), 5))
-	#cv2.waitKey(0)
+	#cv2.waitKey(100)
 
 	#check if biggest contour is just the entire image (if so, delete that extra contour)
-	if len(contours) > 0:	#Unless there are no contours,
-		x,y,width,height=cv2.boundingRect(contours[0])
-		if(width == img_color.shape[1]):
-			contours = contours[1:]
+	#if len(contours) > 0:	#Unless there are no contours,
+	#	x,y,width,height=cv2.boundingRect(contours[0])
+	#	if(width == img_color.shape[1]):
+	#		contours = contours[1:]
 		
 	return (img_color, contours)
 
@@ -186,7 +222,6 @@ def getBlockListFromImage(img):
 		
 		block_region_hsv = cv2.cvtColor(block_region, cv2.COLOR_BGR2HSV) #convert to hsv for better color differentiation
 				
-		print("\nColor areas:")
 				
 		for color in colors: #for each color
 			#Determine the area of that color contained by the region
@@ -211,7 +246,7 @@ def getBlockListFromImage(img):
 				colors_in_region.add(color)
 
 		block_list.append(colors_in_region)
-	return block_list
+	return (contours, block_list)
 
 #ISSUE: If two blocks are touching, black border will get both, so they will be one block
 	#FIX: Get inner contours, not outer. just change that part of the code.

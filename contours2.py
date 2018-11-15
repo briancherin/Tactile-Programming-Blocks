@@ -171,7 +171,7 @@ while True:
 	total_region_area = width*height
 	for color in colors:
 		color_percentage = round(color_areas[color] / total_region_area * 100, 2)
-		#print (color_names[color] + ": " + str(color_percentage) + "%")
+		print (color_names[color] + ": " + str(color_percentage) + "%")
 		
 		if color_percentage > 15:
 			colors_in_region.append(color)

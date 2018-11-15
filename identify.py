@@ -58,15 +58,7 @@ color_ranges = [
 def isNestedContour(outerContour, potentialInnerContour):
 	outer_x, outer_y, outer_width, outer_height = cv2.boundingRect(outerContour)
 	inner_x, inner_y, inner_width, inner_height = cv2.boundingRect(potentialInnerContour)
-	
-	print("\nouter:")
-	print(cv2.boundingRect(outerContour))
-	print("inner:")
-	print(cv2.boundingRect(potentialInnerContour))
-	print("outer_x + outer_width: " + str(outer_x+outer_width))
-	print("inner_x + inner_width: " + str(inner_x+inner_width))
-	print("outer_y + outer_height: " + str(outer_y+outer_height))
-	print("inner_y + inner_height: " + str(inner_y+inner_height))
+
 
 	return outer_x < inner_x and outer_y < inner_y and (outer_x + outer_width > inner_x + inner_width) and (outer_y + outer_height > inner_y + inner_height)
 	
@@ -135,16 +127,21 @@ def getContoursFromImage(filename):
 
 	#locate any black in the image - make anything below the threshold white, and anything above black (black should turn white)
 	thresh_val = 90
-	#ret, thresh = cv2.threshold(img_gray, thresh_val, 255, cv2.THRESH_BINARY_INV) 
 	blocksize = 101
 	constant = 40
 	thresh = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blocksize, constant) 
+	
+	cv2.imshow("thresh", thresh)
+	cv2.waitKey(0)
 
 	#Find the black outline around each block
 	image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 	#Destroy any contours that are below a certain threshold (to get rid of false outlines)
 	contours = removeExtraContours(contours, img_color)
+	
+	cv2.imshow("contours", cv2.drawContours(cv2.cvtColor(thresh.copy(), cv2.COLOR_GRAY2BGR), contours, -1, (0,  255, 0), 5))
+	cv2.waitKey(0)
 
 	#check if biggest contour is just the entire image (if so, delete that extra contour)
 	x,y,width,height=cv2.boundingRect(contours[0])
@@ -170,7 +167,8 @@ def getColorArea(region_bgr, region_hsv, lower_hsv, upper_hsv):
 		#Find the area of the largest contour (TODO: Find the sum of all contour areas?)
 		color_contour_max_area = max(color_contours, key = cv2.contourArea)
 		return cv2.contourArea(color_contour_max_area)
-	
+
+
 def getBlockListFromImage(filename):
 	img_color, contours = getContoursFromImage(filename)
 	
@@ -182,7 +180,7 @@ def getBlockListFromImage(filename):
 		color_areas = [0] * len(colors) #initialize a list of 0s representing the area of each color
 		
 		block_region_hsv = cv2.cvtColor(block_region, cv2.COLOR_BGR2HSV)
-		
+				
 		for color in colors: #for each color
 			#Determine the area of that color contained by the region
 			color_area = getColorArea(block_region, block_region_hsv, color_ranges[color][0], color_ranges[color][1])
@@ -190,11 +188,13 @@ def getBlockListFromImage(filename):
 			if color == RED: 
 				red2_area = getColorArea(block_region, block_region_hsv, lower_red2, upper_red2)
 				color_area += red2_area
+						
+		
 			
 			color_areas[color] = color_area
-		
-		colors_in_region = set() #unordered list of colors in this block
 
+		colors_in_region = set() #unordered list of colors in this block
+		
 		total_region_area = width*height
 		for color in colors:
 			color_percentage = round(color_areas[color] / total_region_area * 100, 2)
@@ -202,11 +202,13 @@ def getBlockListFromImage(filename):
 			if color_percentage > 15:
 				colors_in_region.add(color)
 
-		block_list.append(colors_in_region) #TODO: Ordering might not be right here. (Include coordinate information?)
+		block_list.append(colors_in_region)
 	return block_list
 
+#ISSUE: If two blocks are touching, black border will get both, so they will be one block
+	#FIX: Get inner contours, not outer. just change that part of the code.
 #TODO: Ensure correct order of blocks in image (left to right, up to down)
-blockList = getBlockListFromImage("paper_blocks2.jpg")
+blockList = getBlockListFromImage("test_images/real_if_block21.jpg")
 for block in blockList:
 	printColorList(block)
 	print "\n"
