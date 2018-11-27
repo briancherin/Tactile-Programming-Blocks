@@ -74,6 +74,19 @@ def filterSmallContours(sorted_contours, thresholdArea):
 			num_valid_contours += 1
 	return sorted_contours[0:num_valid_contours]
 
+def removeOuterNestedContours(contours):
+	innerIndex = 0
+	while innerIndex < len(contours):
+		innerContour = contours[innerIndex]
+		potentialOuterIndex = innerIndex + 1
+		while potentialOuterIndex < len(contours):
+			if isNestedContour(contours[potentialOuterIndex], innerContour): #If this contour surrounds the inner one
+				contours = contours[0:potentialOuterIndex] + contours[potentialOuterIndex + 1 : ]
+				potentialOuterIndex -= 1
+			potentialOuterIndex += 1
+		innerIndex += 1
+		
+				
 	
 def removeNestedContours(contours):
 #Precondition: contours is sorted from greatest contour area to least
@@ -111,8 +124,9 @@ def removeExtraContours(contours, img):
 	
 	contours = contours[1:] #Get rid of the border contour (TODO: There might not be a border contour (around entire image) every time, so this might cause issues)
 	
-	max_contour_area = cv2.contourArea(contours[0])
-	contours = filterSmallContours(contours, max_contour_area * 0.1) #accept anything larger than 10% of the max block size (TODO: THIS MIGHT CAUSE ISSUES)(?)
+	if len(contours) > 0:
+		max_contour_area = cv2.contourArea(contours[0])
+		contours = filterSmallContours(contours, max_contour_area * 0.1) #accept anything larger than 10% of the max block size (TODO: THIS MIGHT CAUSE ISSUES)(?)
 	
 	
 	
@@ -135,6 +149,7 @@ def removeExtraContours(contours, img):
 	#contours = block_contours
 	
 	#Remove extra contours caused by the border of each block
+	#contours = removeNestedContours(contours)
 	contours = removeNestedContours(contours)
 	
 	#cv2.namedWindow("contours")
@@ -209,47 +224,102 @@ def getColorArea(region_bgr, region_hsv, lower_hsv, upper_hsv):
 		
 #def orderContoursByLocation(contours):
 	
+	
+#Given a source image and a single contour (of a block) in that image, return a set containing the colors of the block
+def getBlockIdentityFromContour(img_color, block_contour):
+	x, y, width, height = cv2.boundingRect(block_contour) #Find the closest rectangle over this block
+	block_region = img_color[y:(y+height), x:(x+width)]; #crop the image to the rectangle of the block
+	
+	color_areas = [0] * len(colors) #initialize a list of 0s representing the area of each possible color
+	
+	block_region_hsv = cv2.cvtColor(block_region, cv2.COLOR_BGR2HSV) #convert to hsv for better color differentiation
+			
+			
+	for color in colors: #for each color
+		#Determine the area of that color contained by the region
+		color_area = getColorArea(block_region, block_region_hsv, color_ranges[color][0], color_ranges[color][1])
 		
+		if color == RED: 
+			red2_area = getColorArea(block_region, block_region_hsv, lower_red2, upper_red2)
+			color_area += red2_area
+							
+		color_areas[color] = color_area
+
+	colors_in_block = set() #unordered list of colors in this block
+	
+	total_region_area = width*height
+	for color in colors: #For each color
+		#Determine the proportion of this color in the block
+		color_percentage = round(color_areas[color] / total_region_area * 100, 2)
+		
+		if color_percentage > 10: #If there is a significant quantity of this color in the block
+			colors_in_block.add(color) #Consider it a color that makes up the block's identity
+	return colors_in_block
+	
+#Get border of each block (stored as a contour)
+#Send list of contours to orderFunction
+	#This returns a list of lists, where each inner list represents a single row of blocks, and each inner list contains the contours representing those blocks. 
+	#example:
+	#[
+		#[contour_of_block1, contour_of_block_2]
+		#[contour_of_block3]
+	#]
+	#or:
+	#[
+		#[IF, TRUE]
+		#[LED()]
+	#]
+#For each row
+	#For each block
+		#Determine the identity of the block by its color combo
+		#Get the equivalent code and print to file
+		
+		
+#If considering indent space before each row, order function should return:
+#[
+	#[indent_space1, [block1, block2, block3, block4]], #Row 1
+	#[indent_space2, [block1]], #Row 2
+	#[indent_space2, [block2]]  #Row 3
+#]
+
+#Example: Row 1 has indent_space of 0 (first row), Row 2 indent_space = Row 3 indent_space (indented under same [if] block)
+
+	
 def getBlockListFromImage(img):
 	img_color, contours = getContoursFromImage(img)
 	
 	block_list = [] #list containing lists of colors in each block
 	for block_contour in contours: #for each block
-		x, y, width, height = cv2.boundingRect(block_contour) #Find the closest rectangle over this block
-		block_region = img_color[y:(y+height), x:(x+width)]; #crop the image to the rectangle of the block
-		
-		color_areas = [0] * len(colors) #initialize a list of 0s representing the area of each possible color
-		
-		block_region_hsv = cv2.cvtColor(block_region, cv2.COLOR_BGR2HSV) #convert to hsv for better color differentiation
-				
-				
-		for color in colors: #for each color
-			#Determine the area of that color contained by the region
-			color_area = getColorArea(block_region, block_region_hsv, color_ranges[color][0], color_ranges[color][1])
-			
-			if color == RED: 
-				red2_area = getColorArea(block_region, block_region_hsv, lower_red2, upper_red2)
-				color_area += red2_area
-						
-			#print(color_names[color] + ": " + str(color_area))
-			
-			color_areas[color] = color_area
+		block_colors = getBlockIdentityFromContour(img_color, block_contour)
 
-		colors_in_region = set() #unordered list of colors in this block
-		
-		total_region_area = width*height
-		for color in colors:
-			color_percentage = round(color_areas[color] / total_region_area * 100, 2)
-			#print(color_names[color] + ": " +  str(color_percentage) + "%")
-			
-			if color_percentage > 10:
-				colors_in_region.add(color)
-
-		block_list.append(colors_in_region)
+		block_list.append(block_colors)
 	return (contours, block_list)
 
+def getBlockListFromRowList(img_color, ordered_contours):
+	block_list = []
+	
+	#TODO: Adjust for indent_space in ordered_contours? (skip the first element of each row's list (but store the indent_space in the new one too))
+	"""
+	for row in ordered_contours:
+		row_block_list = []
+		for block_contour in row:
+			block_identity = getBlockIdentityFromContour(img_color, block_contour)
+			row_block_list.append(block_identity)
+		block_list.append(row_block_list)
+	"""
+	for row in ordered_contours:
+		indent_space = row[0]
+		row_blocks = row[1]
+		row_block_list = []
+		for block_contour in row_blocks:
+			block_identity = getBlockIdentityFromContour(img_color, block_contour)
+			row_block_list.append(block_identity)
+		block_list.append([indent_space, row_block_list])
+	
+	return block_list
+
 #ISSUE: If two blocks are touching, black border will get both, so they will be one block
-	#FIX: Get inner contours, not outer. just change that part of the code.
+	#FIX: Get inner contours, not outer. just change that part of the code. (but threshold might not be accurate enough for that)
 #TODO: Ensure correct order of blocks in image (left to right, up to down)
 #blockList = getBlockListFromImage("blocks_with_words.jpg")
 
