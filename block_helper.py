@@ -317,6 +317,9 @@ def getBlockListFromRowList(img_color, ordered_contours):
 		block_list.append([indent_space, row_block_list])
 	
 	return block_list
+	
+def standardizeIndents(blockRowList):
+	
 
 #ISSUE: If two blocks are touching, black border will get both, so they will be one block
 	#FIX: Get inner contours, not outer. just change that part of the code. (but threshold might not be accurate enough for that)
