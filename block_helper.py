@@ -318,7 +318,54 @@ def getBlockListFromRowList(img_color, ordered_contours):
 	
 	return block_list
 	
+# testBlockRowList = [] #Test input list
+# testBlockRowList.append([0, [IF, TRUE]])
+# testBlockRowList.append([10, [LED]])
+# testBlockRowList.append([10, [SAY]])
+# testBlockRowList.append([10, [IF, FALSE]])
+# testBlockRowList.append([20, [LED]])
+# testBlockRowList.append([0, [SAY]])
+
+# rowList.append([1, [IF, TRUE]])
+# rowList.append([8, [LED]])
+
+forward_indent_threshold = 7 #Must be at least this distance forward to be considered a forward indent
+equal_indent_threshold = 3 #May be this distance forward or backward to be considered at the same indent level
 def standardizeIndents(blockRowList):
+	indentSpaceStack = [] #Contains indentation space for each potential parent row
+	indent_counter = 0	#Begin at root indentation
+	
+	indentSpaceStack.append(blockRowList[0][0]) #Add the first row's raw indent_space to the stack
+	setRowIndentLevel(blockRowList[0], 0) #Mark the first row as root indent level
+	
+	for row_ind in range (1, len(blockRowList)): #For each row after the first
+		curr_row = blockRowList[row_ind]
+		original_indent_space = curr_row[0]
+		indent_diff = curr_row[0] - indentSpaceStack[-1] #Displacement between this row and the previous row (or the last potential parent)
+		print("indent_diff: " + str(indent_diff))
+		if indent_diff > forward_indent_threshold: #If this row is an indent forward from the previous
+			indent_counter += 1 #Increment the value of the next iteration's potential indent value
+			setRowIndentLevel(curr_row, indent_counter)
+		elif abs(indent_diff) < equal_indent_threshold:	 #If this row is at the same indentation level as previous
+			#indent_counter does not change
+			setRowIndentLevel(curr_row, indent_counter)
+		elif indent_diff < -1 * equal_indent_threshold:	#If this row is at a previous (more leftward) indentation than previous
+			while indent_counter > 0 and indent_diff < -1 * equal_indent_threshold: #Until root level or a row with the same indent level is reached
+				indent_counter -= 1 #This row will be at least one indent backward
+				indentSpaceStack.pop() #The previous row is not a potential parent for this row. Remove it from the stack
+				
+				if len(indentSpaceStack) > 0:  #If there are any potential parent rows still (i.e. root level has not been reached)
+					indent_diff = curr_row[0] - indentSpaceStack[-1] #Recalculate the displacement from the last possible parent
+				else: #Root level has been reached
+					indent_counter = 0 #Will exit the loop before next iteration
+			setRowIndentLevel(curr_row, indent_counter)
+		indentSpaceStack.append(original_indent_space)
+	return blockRowList
+			
+def setRowIndentLevel(row, indent_level):
+	row[0] = indent_level
+
+
 	
 
 #ISSUE: If two blocks are touching, black border will get both, so they will be one block
