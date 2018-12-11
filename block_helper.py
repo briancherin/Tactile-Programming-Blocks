@@ -350,14 +350,10 @@ def standardizeIndents(blockRowList):
 			#indent_counter does not change
 			setRowIndentLevel(curr_row, indent_counter)
 		elif indent_diff < -1 * equal_indent_threshold:	#If this row is at a previous (more leftward) indentation than previous
-			while indent_counter >= 0 or abs(indent_diff) < equal_indent_threshold: #Until root level or a row with the same indent level is reached
-				
-				if abs(indent_diff) < equal_indent_threshold: #if row with same indent level is reached
-					break
+			while indent_counter > 0 and indent_diff < -1 * equal_indent_threshold: #Until root level or a row with the same indent level is reached
 				
 				indent_counter -= 1 #This row will be at least one indent backward
 				
-								
 				if len(indentSpaceStack) > 0: #As long as there is still something left on the stack
 					indentSpaceStack.pop() #The previous row is not a potential parent for this row. Remove it from the stack
 				
