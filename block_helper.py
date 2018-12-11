@@ -228,6 +228,11 @@ def getColorArea(region_bgr, region_hsv, lower_hsv, upper_hsv):
 #Given a source image and a single contour (of a block) in that image, return a set containing the colors of the block
 def getBlockIdentityFromContour(img_color, block_contour):
 	x, y, width, height = cv2.boundingRect(block_contour) #Find the closest rectangle over this block
+	
+	return getBlockIdentityFromRect(img_color, x, y, width, height)
+	
+#Given a source image and a rectangular bounding box around a block in that image, return a set containing the colors of the block
+def getBlockIdentityFromRect(img_color, x, y, width, height):
 	block_region = img_color[y:(y+height), x:(x+width)]; #crop the image to the rectangle of the block
 	
 	color_areas = [0] * len(colors) #initialize a list of 0s representing the area of each possible color
@@ -255,6 +260,7 @@ def getBlockIdentityFromContour(img_color, block_contour):
 		if color_percentage > 10: #If there is a significant quantity of this color in the block
 			colors_in_block.add(color) #Consider it a color that makes up the block's identity
 	return colors_in_block
+
 	
 #Get border of each block (stored as a contour)
 #Send list of contours to orderFunction
@@ -284,6 +290,27 @@ def getBlockIdentityFromContour(img_color, block_contour):
 
 #Example: Row 1 has indent_space of 0 (first row), Row 2 indent_space = Row 3 indent_space (indented under same [if] block)
 
+
+
+#COMPLETE FLOW OF STRUCTURE:
+
+#Example input (image):
+#BLOCK1 BLOCK2
+	#BLOCK3
+
+#Starts with unordered list of contours representing each block:
+	#[contour_of_block1, contour_of_block_2, contour_of_block_3]
+#Next, send to orderFunction, where this will be split up into a list of rows. Each row is a list of contours representing the blocks in the row
+	#[
+		#[contour_of_block_1, contour_of_block_2]	#Row 1
+		#[contour_of_block_3]						#Row 2
+	#]
+#Next, determine the raw indent_space value at the beginning of each row and add it to the beginning of each row list
+#The indent_space value is equal to the x coordinate of one of the left corners of the first block in the row
+	#[
+		#[indent_space_1, [contour_of_block_1, contour_of_block_2]] #Row 1
+		#[indent_space_1, [contour_of_block_3]] 					#Row 2
+	#]
 	
 def getBlockListFromImage(img):
 	img_color, contours = getContoursFromImage(img)
