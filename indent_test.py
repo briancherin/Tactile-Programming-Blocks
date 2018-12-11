@@ -20,6 +20,7 @@ LED = {YELLOW, RED} #LED - yellow-green
 
 class TestIndentation(unittest.TestCase):
 	
+	#@unittest.skip("")
 	def test_standardization(self):
 		testBlockRowList = [] #Test input list
 		testBlockRowList.append([0, [IF, TRUE]])
@@ -40,6 +41,7 @@ class TestIndentation(unittest.TestCase):
 		standardizedRowList = block_helper.standardizeIndents(testBlockRowList)
 		self.assertEqual(standardizedRowList, expectedIndentBlockList)
 	
+	#@unittest.skip("")
 	def test_simple(self):
 		rowList = []
 		rowList.append([1, [IF, TRUE]])
@@ -53,6 +55,7 @@ class TestIndentation(unittest.TestCase):
 
 		self.assertEqual(expected, standardized)
 	
+	#@unittest.skip("")
 	def test_simple2(self):
 		rowList = []
 		rowList.append([1, [IF, TRUE]])
@@ -76,6 +79,64 @@ class TestIndentation(unittest.TestCase):
 		# print (standardized)
 		
 		#self.assertEqual(expected, standardized)
+	
+	def test_backwards(self):
+		rowList = []
+		rowList.append([1, [IF, TRUE]])
+		rowList.append([10, [IF, TRUE]])
+		rowList.append([18, [LED]])
+		rowList.append([10, [LED]])
+		rowList.append([0, [LED]])
+		
+		"""
+		IF TRUE
+			IF TRUE
+				LED
+		LED
+		
+		"""
+		
+		expected = []
+		expected.append([0, [IF, TRUE]])
+		expected.append([1, [IF, TRUE]])
+		expected.append([2, [LED]])
+		expected.append([1, [LED]])
+		expected.append([0, [LED]])
+		
+		
+		standardized = block_helper.standardizeIndents(rowList)
+		self.assertEqual(expected, standardized)	
+	
+	def test_backwards1(self):
+			rowList = []
+			rowList.append([1, [IF, TRUE]])
+			rowList.append([10, [IF, TRUE]])
+			rowList.append([18, [LED]])
+			rowList.append([28, [LED]])
+			rowList.append([20, [LED]])
+			rowList.append([30, [LED]])
+			rowList.append([5, [LED]])
+			
+			"""
+			IF TRUE
+				IF TRUE
+					LED
+			LED
+			
+			"""
+			
+			expected = []
+			expected.append([0, [IF, TRUE]])
+			expected.append([1, [IF, TRUE]])
+			expected.append([2, [LED]])
+			expected.append([3, [LED]])
+			expected.append([2, [LED]])
+			expected.append([3, [LED]])
+			expected.append([0, [LED]])
+			
+			
+			standardized = block_helper.standardizeIndents(rowList)
+			self.assertEqual(expected, standardized)	
 
 if __name__ == '__main__':
 	unittest.main()
