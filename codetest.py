@@ -84,6 +84,11 @@ testBlockRowList.append([10, [IF, FALSE]])
 testBlockRowList.append([20, [LED]])
 testBlockRowList.append([0, [SAY]])
 
+block_list = block_helper.getBlockListFromRowList(img, testRowList)
+block_list = block_helper.standardizeIndents(block_list)
+print block_list
+
+
 """
 IF TRUE
 	LED
@@ -180,5 +185,4 @@ for each row after the first:
 	
 """
 	
-block_list = block_helper.getBlockListFromRowList(img, testRowList)
 
