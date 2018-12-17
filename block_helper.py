@@ -322,7 +322,7 @@ def getBlockListFromImage(img):
 		block_list.append(block_colors)
 	return (contours, block_list)
 
-def getBlockListFromRowList(img_color, ordered_contours):
+def getBlockListFromRowList(img_color, ordered_contours): #(ordered_contours = indented row list)
 	block_list = []
 	
 	#TODO: Adjust for indent_space in ordered_contours? (skip the first element of each row's list (but store the indent_space in the new one too))
@@ -336,10 +336,10 @@ def getBlockListFromRowList(img_color, ordered_contours):
 	"""
 	for row in ordered_contours:
 		indent_space = row[0]
-		row_blocks = row[1]
+		row_block_rects = row[1]
 		row_block_list = []
-		for block_contour in row_blocks:
-			block_identity = getBlockIdentityFromContour(img_color, block_contour)
+		for block_rect in row_block_rects:
+			block_identity = getBlockIdentityFromRect(img_color, block_rect[0], block_rect[1], block_rect[2], block_rect[3])
 			row_block_list.append(block_identity)
 		block_list.append([indent_space, row_block_list])
 	
