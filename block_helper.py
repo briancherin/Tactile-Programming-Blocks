@@ -222,7 +222,56 @@ def getColorArea(region_bgr, region_hsv, lower_hsv, upper_hsv):
 		return cv2.contourArea(color_contour_max_area)
 
 		
-#def orderContoursByLocation(contours):
+		
+		
+		
+#For the sorting function. Sorts a list by the 0th element of each element
+def takeFirst(elem):
+    return elem[0]
+    
+def sortIntoRows(contourList):
+
+	coordinate_list = []
+
+	# add the contours to a list
+	for contour in contourList:
+		x, y, width, height = cv2.boundingRect(contour)
+		coordinate_list.append((x,y,width,height))
+
+	# sort contour list first by x-coordinate
+	# begin step 1
+	coordinate_list.sort(key=takeFirst)
+	# end step 1
+
+	row_list = list()
+	row = 0
+	# begin step 5
+	while len(coordinate_list) > 0: # loops until there is nothing in the list anymore
+		count = 0
+		first_in_row = coordinate_list.pop(0) # first block in the row
+		row_list.append([first_in_row])
+		while count < len(coordinate_list): # finds everything in row
+			# begin step 2
+			# end step 2
+			# begin steps 3 & 4
+			check_row = coordinate_list[count] # the block that we are checking if is in the same row as first_in_row
+			if check_row[1] < first_in_row[1] + first_in_row[3]/2 and check_row[1] + check_row[3] > first_in_row[1] + first_in_row[3]/2: # they overlap
+				row_list[len(row_list) - 1].append(coordinate_list.pop(count))
+			else: # they don't overlap
+				count += 1
+			# end steps 3 & 4
+	# end step 5
+	return row_list
+
+#Add to the list the indent_space (distance from left edge of image) for the first block of each row.
+def markIndentSpace(rowList):
+	for x in range (0, len(rowList)):
+		row_indent_space = rowList[x][0][0] #The horizontal dispacement of the first block in the row (amount of space indented)
+		rowList[x] = [row_indent_space, rowList[x]] #Each row becomes a list containing the indent_space and the list of block contour info
+	return rowList
+	
+	
+	
 	
 	
 #Given a source image and a single contour (of a block) in that image, return a set containing the colors of the block
@@ -262,6 +311,8 @@ def getBlockIdentityFromRect(img_color, x, y, width, height):
 	return colors_in_block
 
 	
+
+"""GENERAL PROCEDURE:"""	
 #Get border of each block (stored as a contour)
 #Send list of contours to orderFunction
 	#This returns a list of lists, where each inner list represents a single row of blocks, and each inner list contains the contours representing those blocks. 
@@ -292,7 +343,7 @@ def getBlockIdentityFromRect(img_color, x, y, width, height):
 
 
 
-#COMPLETE FLOW OF STRUCTURE:
+"""COMPLETE FLOW OF STRUCTURE:"""
 
 #Example input (image):
 #BLOCK1 BLOCK2
@@ -309,7 +360,13 @@ def getBlockIdentityFromRect(img_color, x, y, width, height):
 #The indent_space value is equal to the x coordinate of one of the left corners of the first block in the row
 	#[
 		#[indent_space_1, [contour_of_block_1, contour_of_block_2]] #Row 1
-		#[indent_space_1, [contour_of_block_3]] 					#Row 2
+		#[indent_space_2, [contour_of_block_3]] 					#Row 2
+	#]
+#Next, to adjust for the slight differences in indentation that a user may position from block to block, each row must be assigned a normalized level of indentation. For example, a row at root level would have an indentation level of 0. A block indented one indent forward would have a level of 1, and so on. In this step, we go from a distance value from the left edge, to a standardized indent value, so that we know which rows are at the same level of indentation, allowing for us to know the coding hierarchy.
+#The list becomes:
+	#[
+		#[standard_indent_space_1, [contour_of_block_1, contour_of_block_2]] #Row 1
+		#[standard_indent_space_2, [contour_of_block_3]] 					#Row 2
 	#]
 	
 def getBlockListFromImage(img):
@@ -325,15 +382,7 @@ def getBlockListFromImage(img):
 def getBlockListFromRowList(img_color, ordered_contours): #(ordered_contours = indented row list)
 	block_list = []
 	
-	#TODO: Adjust for indent_space in ordered_contours? (skip the first element of each row's list (but store the indent_space in the new one too))
-	"""
-	for row in ordered_contours:
-		row_block_list = []
-		for block_contour in row:
-			block_identity = getBlockIdentityFromContour(img_color, block_contour)
-			row_block_list.append(block_identity)
-		block_list.append(row_block_list)
-	"""
+
 	for row in ordered_contours:
 		indent_space = row[0]
 		row_block_rects = row[1]
@@ -345,16 +394,7 @@ def getBlockListFromRowList(img_color, ordered_contours): #(ordered_contours = i
 	
 	return block_list
 	
-# testBlockRowList = [] #Test input list
-# testBlockRowList.append([0, [IF, TRUE]])
-# testBlockRowList.append([10, [LED]])
-# testBlockRowList.append([10, [SAY]])
-# testBlockRowList.append([10, [IF, FALSE]])
-# testBlockRowList.append([20, [LED]])
-# testBlockRowList.append([0, [SAY]])
 
-# rowList.append([1, [IF, TRUE]])
-# rowList.append([8, [LED]])
 
 forward_indent_threshold = 7 #Must be at least this distance forward to be considered a forward indent
 equal_indent_threshold = 3 #May be this distance forward or backward to be considered at the same indent level
