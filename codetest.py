@@ -3,14 +3,13 @@ import block_helper, cv2, imutils
 RED = block_helper.RED
 YELLOW = block_helper.YELLOW
 GREEN = block_helper.GREEN
-AQUA = block_helper.AQUA
 BLUE = block_helper.BLUE
 PURPLE = block_helper.PURPLE
 
 #function chart
 IF = {BLUE, GREEN} #if - red-yellow
 TRUE = {RED, GREEN} #true - red-green
-FALSE = {RED, AQUA} #false - red-aqua
+#FALSE = {RED, AQUA} #false - red-aqua
 WHILE = {RED, BLUE} #while - red-blue
 SAY = {RED, PURPLE} #say - red-purple
 LED = {YELLOW, RED} #LED - yellow-green
@@ -24,7 +23,7 @@ LESS_THAN = {GREEN}
 block_identities = {
 	tuple(IF): "if",
 	tuple(TRUE): "true",
-	tuple(FALSE): "false",
+	#tuple(FALSE): "false",
 	tuple(WHILE): "while",
 	tuple(SAY): "say",
 	tuple(LED): "LED()",
@@ -41,7 +40,7 @@ block_identities = {
 #becomes (printed to file):
 #if true:\n
 #[tab]led()
-def translate_to_code_file(block_rows): #list of block identities in rows, with indent level
+def translate_to_code_file(output_file_name, block_rows): #list of block identities in rows, with indent level
 	final_code = ""
 	
 	for row in block_rows:
@@ -61,7 +60,7 @@ def translate_to_code_file(block_rows): #list of block identities in rows, with 
 		final_code += "\n" #Move to the next line
 
 
-	f = open("myfile.py", "w")
+	f = open(output_file_name, "w")
 	f.write(final_code)
 	f.close()
 	
@@ -77,7 +76,8 @@ sortedContours = block_helper.sortIntoRows(contours) #Split the contours into co
 sortedContours = block_helper.markIndentSpace(sortedContours) #Add the raw horizontal displacement of each row to the list of rows
 sortedContours = block_helper.standardizeIndents(sortedContours)
 blockIdentitiesInRows = block_helper.getBlockListFromRowList(img, sortedContours)
-translate_to_code_file(blockIdentitiesInRows)
+translate_to_code_file("block_code.py", blockIdentitiesInRows)
+print blockIdentitiesInRows
 
 """
 for row in blockIdentitiesInRows:

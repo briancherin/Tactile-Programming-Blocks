@@ -4,10 +4,9 @@ import imutils
 RED = 0
 YELLOW = 1
 GREEN = 2
-AQUA = 3 #light blue
-BLUE = 4 #dark blue
-PURPLE = 5
-BLACK = 6
+BLUE = 3 #dark blue
+PURPLE = 4
+BLACK = 5
 
 
 """
@@ -18,8 +17,8 @@ BLACK = 6
 ]
 
 """
-colors = [RED, YELLOW, GREEN, AQUA, BLUE, PURPLE]
-color_names = ["RED", "YELLOW", "GREEN", "AQUA", "BLUE", "PURPLE"]
+colors = [RED, YELLOW, GREEN, BLUE, PURPLE]
+color_names = ["RED", "YELLOW", "GREEN", "BLUE", "PURPLE"]
 
 """COLOR RANGES (HSV):"""
 
@@ -36,10 +35,11 @@ upper_yellow = np.array([45,255,255])
 lower_green = np.array([46,0,value])
 upper_green = np.array([75,255,255])
 
-lower_aqua = np.array([76,0,value])
-upper_aqua = np.array([105,255,255])
+# lower_aqua = np.array([76,0,value])
+lower_blue = np.array([76,0,value])
+#upper_aqua = np.array([105,255,255])
 
-lower_blue = np.array([106,0,value])
+#lower_blue = np.array([106,0,value])
 upper_blue = np.array([135,255,255])
 
 lower_purple = np.array([136,0,value])
@@ -50,7 +50,7 @@ color_ranges = [
 	(lower_red1, upper_red1),	#INDEX 0 = RED
 	(lower_yellow, upper_yellow), #INDEX 2 = YELLOW
 	(lower_green, upper_green),	#INDEX 3 = GREEN
-	(lower_aqua, upper_aqua),	#INDEX 4 = AQUA
+	#(lower_aqua, upper_aqua),	#INDEX 4 = AQUA
 	(lower_blue, upper_blue),	#INDEX 5 = BLUE
 	(lower_purple, upper_purple),#INDEX 6 = PURPLE
 ]
