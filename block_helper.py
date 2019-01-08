@@ -396,20 +396,36 @@ def getBlockListFromRowList(img_color, ordered_contours): #(ordered_contours = i
 	
 
 
-forward_indent_threshold = 7 #Must be at least this distance forward to be considered a forward indent
-equal_indent_threshold = 3 #May be this distance forward or backward to be considered at the same indent level
-def standardizeIndents(blockRowList):
+	
+#TODO: Make these thresholds relative so that the size of the image (i.e. camera distance) does not matter (i.e. not based on changeable/unreliable pixel values)
+#At the very beginning, find the [largest?] block and take the length (in pixels?) of it. Do something to this length (i.e. divide by 2) and make this the forward indent threshold.
+#But what if they move the camera during? Or life the surface up? 
+#Better (less efficient? but maybe necessary) solution: every time you standardizeIndents, check for largest block length and adjust thresholds.
+#But use the height, in case the only blocks present are half-sized ones. Multiply height by two (??) to get long block length (sketchy?). or just use the height as the forward threshold. (!) (sketchy?) and [1/4] the height as the equal threshold??
+
+def initializeIndentationThresholds(sortedContours): #This function assumes that sortedContours contains the tuple of x, y, width, height values (i.e. rect) rather than the actual contour object
+	blockHeight = sortedContours[0][1][0][3]
+	forward_indent_threshold = blockHeight
+	equal_indent_threshold = blockHeight / 4.0
+	
+	return (forward_indent_threshold, equal_indent_threshold)
+
+#forward_indent_threshold = 7 #Must be at least this distance forward to be considered a forward indent
+#equal_indent_threshold = 3 #May be this distance forward or backward to be considered at the same indent level
+def standardizeIndents(sortedContours):
+
+	forward_indent_threshold, equal_indent_threshold = initializeIndentationThresholds(sortedContours)
+
 	indentSpaceStack = [] #Contains indentation space for each potential parent row
 	indent_counter = 0	#Begin at root indentation
 	
-	indentSpaceStack.append(blockRowList[0][0]) #Add the first row's raw indent_space to the stack
-	setRowIndentLevel(blockRowList[0], 0) #Mark the first row as root indent level
+	indentSpaceStack.append(sortedContours[0][0]) #Add the first row's raw indent_space to the stack
+	setRowIndentLevel(sortedContours[0], 0) #Mark the first row as root indent level
 	
-	for row_ind in range (1, len(blockRowList)): #For each row after the first
-		curr_row = blockRowList[row_ind]
+	for row_ind in range (1, len(sortedContours)): #For each row after the first
+		curr_row = sortedContours[row_ind]
 		original_indent_space = curr_row[0]
 		indent_diff = curr_row[0] - indentSpaceStack[-1] #Displacement between this row and the previous row (or the last potential parent)
-		print("indent_diff: " + str(indent_diff))
 		if indent_diff > forward_indent_threshold: #If this row is an indent forward from the previous
 			indent_counter += 1 #Increment the value of the next iteration's potential indent value
 			setRowIndentLevel(curr_row, indent_counter)
@@ -432,10 +448,10 @@ def standardizeIndents(blockRowList):
 					break	#Exit the loop
 			setRowIndentLevel(curr_row, indent_counter)
 		indentSpaceStack.append(original_indent_space)
-	return blockRowList
+	return sortedContours
 			
 def setRowIndentLevel(row, indent_level):
-	row[0] = indent_level
+	row[0] = indent_level #Replace the raw indent value with the standardized value
 
 
 	
